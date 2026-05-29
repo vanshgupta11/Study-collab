@@ -23,7 +23,7 @@ export const SocketProvider = ({ children }) => {
     }
 
     // Create a new socket connection with the JWT in the auth handshake
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io('https://study-collab-9pcp.onrender.com', {
       auth: { token: `Bearer ${token}` },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,

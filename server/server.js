@@ -20,8 +20,11 @@ connectDB();
 // Initialize Express App
 const app = express();
 
-// Resolve client origin dynamically for production deployments
-const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+// Resolve client origin dynamically for production deployments (robustly handling trailing slashes)
+let clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+if (clientOrigin.endsWith('/')) {
+  clientOrigin = clientOrigin.slice(0, -1);
+}
 
 // Apply Global Middleware
 app.use(cors({
