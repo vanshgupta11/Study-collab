@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://study-collab-9pcp.onrender.comapi',
+  baseURL: 'api',
   headers: {
     'Content-Type': 'application/json',
   },
