@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -10,23 +10,48 @@ import ActivityFeed  from '../components/ActivityFeed';
 
 import {
   ArrowLeft, BookOpen, Hash, Users, Copy, Check,
-  Loader2, Wifi, WifiOff
+  Loader2, Wifi, WifiOff, Trash2
 } from 'lucide-react';
 
 const RoomPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const { socket, connected } = useSocket();
+  const navigate = useNavigate();
 
   const [room, setRoom]         = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   // Online participants tracked via socket events
   const [onlineUsers, setOnlineUsers] = useState([]);
   // Copy-to-clipboard feedback
   const [copied, setCopied] = useState(false);
+
+  const isOwner = room?.owner?._id === user?._id || room?.owner === user?._id;
+
+  const handleDeleteRoom = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this study room? This action will permanently remove all associated chat logs and focus sessions, and cannot be undone.")) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const { data } = await api.delete(`/rooms/${id}`);
+      if (data.success) {
+        navigate('/rooms');
+      } else {
+        alert(data.message || 'Failed to delete room');
+      }
+    } catch (err) {
+      console.error('Error deleting room:', err);
+      alert(err.response?.data?.message || 'Failed to delete room');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // ─── Fetch room + messages ───────────────────────────────────────
   useEffect(() => {
@@ -157,24 +182,49 @@ const RoomPage = () => {
           </div>
         </div>
 
-        {/* Online participants pills */}
-        <div className="ml-auto hidden md:flex items-center gap-1.5">
-          <span className="text-[10px] uppercase tracking-wider text-dark-500 mr-1">Online</span>
-          {onlineUsers.slice(0, 5).map((u) => (
-            <div
-              key={u._id}
-              title={u.name}
-              className="w-7 h-7 rounded-full bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 text-xs font-semibold relative"
+        {/* Actions & Online Status */}
+        <div className="ml-auto flex items-center gap-3">
+          {/* Delete Room button (Owner only) */}
+          {isOwner && (
+            <button
+              id="delete-room-btn"
+              onClick={handleDeleteRoom}
+              disabled={deleting}
+              className="text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/45 bg-red-500/10 px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
             >
-              {u.name?.[0]?.toUpperCase()}
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-dark-900" />
-            </div>
-          ))}
-          {onlineUsers.length > 5 && (
-            <div className="w-7 h-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-dark-300 text-[10px] font-semibold">
-              +{onlineUsers.length - 5}
-            </div>
+              {deleting ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 size={12} />
+                  <span>Delete Room</span>
+                </>
+              )}
+            </button>
           )}
+
+          {/* Online participants pills */}
+          <div className="hidden md:flex items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-dark-500 mr-1">Online</span>
+            {onlineUsers.slice(0, 5).map((u) => (
+              <div
+                key={u._id}
+                title={u.name}
+                className="w-7 h-7 rounded-full bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 text-xs font-semibold relative"
+              >
+                {u.name?.[0]?.toUpperCase()}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-dark-900" />
+              </div>
+            ))}
+            {onlineUsers.length > 5 && (
+              <div className="w-7 h-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-dark-300 text-[10px] font-semibold">
+                +{onlineUsers.length - 5}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
