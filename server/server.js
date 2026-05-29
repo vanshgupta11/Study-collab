@@ -20,9 +20,12 @@ connectDB();
 // Initialize Express App
 const app = express();
 
+// Resolve client origin dynamically for production deployments
+const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+
 // Apply Global Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: clientOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
@@ -45,7 +48,7 @@ const server = http.createServer(app);
 // Integrate Socket.io with Express HTTP Server
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: clientOrigin,
     methods: ['GET', 'POST'],
     credentials: true
   }
